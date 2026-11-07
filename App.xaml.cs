@@ -94,6 +94,14 @@ namespace Isle
             _island.Show();
 
             _startMenu = new StartMenu();
+            _startMenu.Hidden += () =>
+            {
+                // Kurz warten, bis Windows das Spiel wieder nach vorne geholt hat – dann erst entscheiden
+                var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+                t.Tick += (_, _) => { t.Stop(); Dock?.EndReveal(); _topBar?.EndReveal(); };
+                t.Start();
+            };
+            _events.ForegroundChanged += _startMenu.OnForegroundChanged; // andere App vorne → Startmenü zu
 
             _keyboard = new KeyboardHook { Enabled = s.WinKeyOpensStart };
             _keyboard.WinKeyAlone += ToggleStartMenu;
@@ -118,7 +126,24 @@ namespace Isle
 
         // ---------------------------------------------------------------- Aktionen für Menüs
 
-        public void ToggleStartMenu() => _startMenu?.Toggle();
+        public void ToggleStartMenu()
+        {
+            if (_startMenu == null) return;
+            // Im Spiel (Vollbild): Dock und Top-Bar mit einblenden, wie Windows es mit seiner Taskleiste macht
+            if (!_startMenu.IsVisible && NativeMethods.IsForegroundFullscreen(IntPtr.Zero))
+            {
+                Dock?.RevealOverFullscreen();
+                _topBar?.RevealOverFullscreen();
+            }
+            _startMenu.Toggle();
+        }
+
+        public void SetShowIslandInFullscreen(bool show)
+        {
+            Settings.Current.ShowIslandInFullscreen = show;
+            Settings.Save();
+            _island?.RecheckFullscreen();
+        }
 
         public void SetDockVisible(bool visible)
         {

@@ -73,6 +73,7 @@ No installation or extra runtime needed. Works on **Windows 10 (version 2004 or 
 <p align="center"><img src="docs/start-en.svg" width="100%" alt="Start menu with search, recent files and all apps"></p>
 
 - Opens with the **Windows key** — just start typing, arrow keys + Enter to launch, Esc to close
+- In games (fullscreen) the Windows key brings the dock and top bar to the front too
 - Recent files, all apps (including Store apps), web search
 - Right-click an app: keep in dock, run as administrator, open file location
 - Lock, sleep, restart, shut down, sign out
@@ -84,7 +85,7 @@ While Isle runs, the Windows taskbar is **hidden completely**. Maximized windows
 
 ## Settings
 
-Everything lives in the **Isle menu** (pill icon, top left) and under *Einstellungen …*: dock on/off, hide taskbar, tray icons in the top bar, Windows key, start with Windows, weather location, text color and weight of the top bar.
+Everything lives in the **Isle menu** (pill icon, top left) and under *Einstellungen …*: dock on/off, hide taskbar, tray icons in the top bar, Windows key, show the island in games, start with Windows, weather location, text color and weight of the top bar.
 Settings are stored in `%AppData%\Isle\settings.json`, a small log in `isle.log` next to it.
 
 ## FAQ

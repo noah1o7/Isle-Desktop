@@ -72,6 +72,7 @@ Keine Installation, nichts zusätzlich nötig. Läuft auf **Windows 10 (ab Versi
 <p align="center"><img src="docs/start-de.svg" width="100%" alt="Startmenü mit Suche, zuletzt verwendeten Dateien und allen Apps"></p>
 
 - Öffnet sich mit der **Windows-Taste** – einfach lostippen, Pfeiltasten + Enter startet, Esc schließt
+- Im Spiel (Vollbild) bringt die Windows-Taste Dock und Top-Bar mit nach vorne
 - Zuletzt verwendete Dateien, alle Apps (auch Store-Apps), Websuche
 - Rechtsklick auf eine App: Im Dock behalten, Als Administrator ausführen, Speicherort öffnen
 - Sperren, Energie sparen, Neu starten, Herunterfahren, Abmelden
@@ -83,7 +84,7 @@ Solange Isle läuft, ist die Windows-Taskleiste **komplett ausgeblendet**. Maxim
 
 ## Einstellungen
 
-Alles im **Isle-Menü** (Pillen-Symbol oben links) und unter *Einstellungen …*: Dock an/aus, Taskleiste ausblenden, Tray-Icons in der Top-Bar, Windows-Taste, mit Windows starten, Wetter-Ort, Schriftfarbe und -stärke der Leiste.
+Alles im **Isle-Menü** (Pillen-Symbol oben links) und unter *Einstellungen …*: Dock an/aus, Taskleiste ausblenden, Tray-Icons in der Top-Bar, Windows-Taste, Insel auch in Spielen zeigen, mit Windows starten, Wetter-Ort, Schriftfarbe und -stärke der Leiste.
 Gespeichert wird in `%AppData%\Isle\settings.json`, ein kleines Protokoll liegt daneben in `isle.log`.
 
 ## Häufige Fragen

@@ -68,6 +68,24 @@ namespace Isle
             };
         }
 
+        private bool _fullscreen;
+        private bool _revealed;
+
+        /// <summary>Windows-Taste/Start im Spiel: Leiste über das Vollbild legen, bis das Startmenü wieder zu ist.</summary>
+        public void RevealOverFullscreen()
+        {
+            _revealed = true;
+            Visibility = Visibility.Visible;
+            if (_barHwnd != IntPtr.Zero) NativeMethods.KeepOnTop(_barHwnd);
+        }
+
+        public void EndReveal()
+        {
+            if (!_revealed) return;
+            _revealed = false;
+            Visibility = _fullscreen && NativeMethods.IsForegroundFullscreen(_barHwnd) ? Visibility.Hidden : Visibility.Visible;
+        }
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
@@ -75,7 +93,11 @@ namespace Isle
             _barHwnd = hwnd;
             NativeMethods.MakeToolWindow(hwnd);
             _appBar = new AppBar(this, Win32.ABE_TOP, BarHeight, BarHeight);
-            _appBar.FullscreenChanged += fs => Visibility = fs ? Visibility.Hidden : Visibility.Visible;
+            _appBar.FullscreenChanged += fs =>
+            {
+                _fullscreen = fs;
+                if (!_revealed) Visibility = fs ? Visibility.Hidden : Visibility.Visible;
+            };
             _appBar.Register();
             HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
         }
@@ -469,6 +491,7 @@ namespace Isle
                     n == 1 ? "1 App wurde hinten ans Dock angehängt." : $"{n} Apps wurden hinten ans Dock angehängt.", "OK");
             }));
             m.Items.Add(Check("Windows-Taste öffnet Isle-Start", s.WinKeyOpensStart, v => app.SetWinKeyOpensStart(v)));
+            m.Items.Add(Check("Insel auch in Spielen/Vollbild zeigen", s.ShowIslandInFullscreen, v => app.SetShowIslandInFullscreen(v)));
             m.Items.Add(Check("Mit Windows starten", Autostart.IsEnabled(), Autostart.Set));
             m.Items.Add(Item("Wetter-Ort festlegen …", AskWeatherCity));
             m.Items.Add(new Separator());

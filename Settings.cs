@@ -26,6 +26,8 @@ namespace Isle
         public bool ShowDock { get; set; } = true;
         public bool AutoHideTaskbar { get; set; } = true;
         public bool WinKeyOpensStart { get; set; } = true;
+        /// <summary>Insel (Pille) auch über Spielen und anderen Vollbild-Apps anzeigen.</summary>
+        public bool ShowIslandInFullscreen { get; set; }
         public string? WeatherCity { get; set; }
         public double? WeatherLat { get; set; }
         public double? WeatherLon { get; set; }

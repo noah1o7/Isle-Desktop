@@ -786,9 +786,12 @@ namespace Isle
                 : $"{(int)t.TotalMinutes}:{t.Seconds:00}";
         }
 
+        public void RecheckFullscreen() => CheckFullscreen();
+
         private void CheckFullscreen()
         {
-            bool fs = NativeMethods.IsForegroundFullscreen(_hwnd);
+            // Mit der Einstellung „Insel auch in Spielen zeigen“ bleibt sie einfach sichtbar
+            bool fs = !Settings.Current.ShowIslandInFullscreen && NativeMethods.IsForegroundFullscreen(_hwnd);
             if (fs == _hiddenForFullscreen) return;
             _hiddenForFullscreen = fs;
             UpdateBars();

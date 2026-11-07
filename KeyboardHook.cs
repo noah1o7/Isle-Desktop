@@ -16,6 +16,8 @@ namespace Isle
         private IntPtr _hook;
         private bool _winDown;
         private bool _comboUsed;
+        // Tasten, die gerade gedrückt gehalten werden (z. B. W/A/S/D beim Laufen im Spiel)
+        private readonly bool[] _held = new bool[256];
 
         public event Action? WinKeyAlone;
         public bool Enabled { get; set; } = true;
@@ -37,6 +39,15 @@ namespace Isle
                 bool up = msg is Win32.WM_KEYUP or Win32.WM_SYSKEYUP;
                 bool isWin = k.vkCode is VK_LWIN or VK_RWIN;
 
+                // Merken, welche Tasten gerade unten sind – auch wenn die Funktion aus ist
+                bool wasHeld = false;
+                if (!injected && k.vkCode < 256)
+                {
+                    wasHeld = _held[k.vkCode];
+                    if (down) _held[k.vkCode] = true;
+                    else if (up) _held[k.vkCode] = false;
+                }
+
                 if (!injected && Enabled)
                 {
                     if (isWin && down)
@@ -57,6 +68,14 @@ namespace Isle
                     }
                     else if (down && _winDown)
                     {
+                        if (wasHeld)
+                        {
+                            // Taste wurde schon VOR der Windows-Taste gehalten (Laufen im Spiel) und meldet sich nur
+                            // per Tastenwiederholung erneut. Das ist keine Kombi wie Win+D – und Windows würde daraus
+                            // sonst z. B. Win+W (Widgets) machen. Die Wiederholung schlucken, das Spiel merkt nichts,
+                            // weil die Taste für es ohnehin noch gedrückt ist.
+                            return new IntPtr(1);
+                        }
                         _comboUsed = true;
                     }
                 }

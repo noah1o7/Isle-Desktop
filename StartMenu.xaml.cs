@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -21,6 +22,11 @@ namespace Isle
         private bool _closing;
 
         public DateTime LastHidden { get; private set; } = DateTime.MinValue;
+        private DateTime _shownAt = DateTime.MinValue;
+        private int _subMenus; // offene Rechtsklick-/Ein-Aus-Menüs: Klicks darin sind keine Klicks „daneben“
+
+        /// <summary>Menü ist (nach der Ausblend-Animation) komplett weg.</summary>
+        public event Action? Hidden;
 
         public StartMenu()
         {
@@ -30,6 +36,7 @@ namespace Isle
 
             AppCatalog.Loaded += BuildAppTiles;
             Deactivated += (_, _) => HideMenu();
+            _mouseProc = MouseHook;
         }
 
         // ---------------------------------------------------------------- Ein-/Ausblenden
@@ -48,6 +55,9 @@ namespace Isle
             Left = wa.Left + (wa.Width - Width) / 2;
             Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
 
+            _closing = false; // falls eine Ausblend-Animation unterbrochen wurde – sonst ginge das Menü nie mehr zu
+            _subMenus = 0;
+            _shownAt = DateTime.Now;
             SearchBox.Text = "";
             BuildRecent();
             ApplyFilter();
@@ -60,6 +70,7 @@ namespace Isle
             Activate();
             SearchBox.Focus();
             Keyboard.Focus(SearchBox);
+            HookMouse(); // Klick daneben schließt – auch wenn Windows uns den Fokus nicht gegeben hat
 
             var dur = TimeSpan.FromMilliseconds(160);
             var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
@@ -73,13 +84,84 @@ namespace Isle
             if (!IsVisible || _closing) return;
             _closing = true;
             LastHidden = DateTime.Now;
+            UnhookMouse();
             var a = new DoubleAnimation(0, TimeSpan.FromMilliseconds(100));
             a.Completed += (_, _) =>
             {
+                if (!_closing) return; // inzwischen wieder geöffnet
                 Hide();
                 _closing = false;
+                Hidden?.Invoke();
             };
             BeginAnimation(OpacityProperty, a);
+        }
+
+        /// <summary>
+        /// Eine andere App ist nach vorne gekommen (Windows meldet das). Dann gehört das Menü weg –
+        /// unabhängig davon, ob WPF ein „Deactivated“ geschickt hat (das bleibt manchmal aus,
+        /// wenn Windows dem Menü den Fokus gar nicht erst gegeben hat).
+        /// </summary>
+        public void OnForegroundChanged()
+        {
+            if (!IsVisible || _closing || _subMenus > 0) return;
+            if ((DateTime.Now - _shownAt).TotalMilliseconds < 250) return; // Fokuswechsel beim Öffnen selbst
+            IntPtr fg = Win32.GetForegroundWindow();
+            if (fg == new WindowInteropHelper(this).Handle) return;
+            Win32.GetWindowThreadProcessId(fg, out uint pid);
+            if (pid == (uint)Environment.ProcessId) return; // eigene Fenster (z. B. Dialoge) zählen nicht
+            HideMenu();
+        }
+
+        // ---------------------------------------------------------------- Klick daneben
+
+        private const int WH_MOUSE_LL = 14;
+        private const int WM_LBUTTONDOWN = 0x201, WM_RBUTTONDOWN = 0x204, WM_MBUTTONDOWN = 0x207;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MSLLHOOKSTRUCT { public Win32.POINT pt; public uint mouseData, flags, time; public IntPtr extra; }
+
+        private readonly Win32.LowLevelKeyboardProc _mouseProc; // gleiche Signatur; Referenz halten wegen GC
+        private IntPtr _mouseHook;
+
+        private void HookMouse()
+        {
+            if (_mouseHook != IntPtr.Zero) return;
+            _mouseHook = Win32.SetWindowsHookEx(WH_MOUSE_LL, _mouseProc, Win32.GetModuleHandle(null), 0);
+        }
+
+        private void UnhookMouse()
+        {
+            if (_mouseHook == IntPtr.Zero) return;
+            Win32.UnhookWindowsHookEx(_mouseHook);
+            _mouseHook = IntPtr.Zero;
+        }
+
+        private IntPtr MouseHook(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && wParam.ToInt32() is WM_LBUTTONDOWN or WM_RBUTTONDOWN or WM_MBUTTONDOWN)
+            {
+                var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                IntPtr me = new WindowInteropHelper(this).Handle;
+                bool inside = Win32.GetWindowRect(me, out var r)
+                              && info.pt.X >= r.Left && info.pt.X < r.Right && info.pt.Y >= r.Top && info.pt.Y < r.Bottom;
+                if (!inside && _subMenus == 0)
+                    Dispatcher.BeginInvoke(new Action(HideMenu));
+            }
+            return Win32.CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            UnhookMouse();
+            base.OnClosed(e);
+        }
+
+        /// <summary>Kleine Menüs im Startmenü öffnen und mitzählen, solange sie offen sind.</summary>
+        private void OpenSubMenu(ContextMenu m)
+        {
+            _subMenus++;
+            m.Closed += (_, _) => _subMenus = Math.Max(0, _subMenus - 1);
+            m.IsOpen = true;
         }
 
         // ---------------------------------------------------------------- Kacheln
@@ -114,7 +196,7 @@ namespace Isle
                     if (m == null) return;
                     m.PlacementTarget = b;
                     m.Placement = PlacementMode.MousePoint;
-                    m.IsOpen = true;
+                    OpenSubMenu(m);
                 };
             }
             loadIcon(img);
@@ -311,7 +393,7 @@ namespace Isle
             m.Items.Add(TopBar.Item("Abmelden …", () => { HideMenu(); Power.SignOut(); }));
             m.PlacementTarget = PowerButton;
             m.Placement = PlacementMode.Top;
-            m.IsOpen = true;
+            OpenSubMenu(m);
         }
     }
 }

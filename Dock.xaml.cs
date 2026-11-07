@@ -37,6 +37,7 @@ namespace Isle
         private AppBar? _appBar;
         private IntPtr _hwnd;
         private bool _fullscreen;
+        private bool _revealed; // Windows-Taste im Spiel: Dock trotz Vollbild kurz zeigen
 
         // Vergrößerung: höchstens einmal pro Bildschirm-Frame berechnen (Gaming-Mäuse melden bis zu 1000×/s)
         private double? _mouseX;
@@ -94,11 +95,35 @@ namespace Isle
             _appBar.FullscreenChanged += fs =>
             {
                 _fullscreen = fs;
+                if (_revealed) return; // gerade per Windows-Taste über dem Spiel eingeblendet
                 if (fs) HidePreview();
                 Visibility = fs ? Visibility.Hidden : Visibility.Visible;
             };
             _appBar.Register();
             UpdateWindowWidth();
+        }
+
+        /// <summary>Windows-Taste/Start im Spiel: Dock über das Vollbild legen, bis das Startmenü wieder zu ist.</summary>
+        public void RevealOverFullscreen()
+        {
+            if (!Settings.Current.ShowDock) return;
+            _revealed = true;
+            Visibility = Visibility.Visible;
+            if (_hwnd != IntPtr.Zero) NativeMethods.KeepOnTop(_hwnd);
+        }
+
+        /// <summary>Startmenü ist zu: Läuft das Spiel noch im Vollbild, verschwindet das Dock wieder.</summary>
+        public void EndReveal()
+        {
+            if (!_revealed) return;
+            _revealed = false;
+            if (!Settings.Current.ShowDock) return;
+            if (_fullscreen && NativeMethods.IsForegroundFullscreen(_hwnd))
+            {
+                HidePreview();
+                Visibility = Visibility.Hidden;
+            }
+            else Visibility = Visibility.Visible;
         }
 
         public void ShowDock()
@@ -248,7 +273,7 @@ namespace Isle
                 }
             }
 
-            if (!_fullscreen && IsVisible && !TaskbarControl.IsRevealed()) NativeMethods.KeepOnTop(_hwnd);
+            if ((!_fullscreen || _revealed) && IsVisible && !TaskbarControl.IsRevealed()) NativeMethods.KeepOnTop(_hwnd);
         }
 
         private void Rebuild(List<RunningApp?> pinMatches, List<RunningApp> unpinned)
@@ -640,7 +665,7 @@ namespace Isle
 
         private void ShowPreview(DockTile tile)
         {
-            if (tile.Running == null || PresentationSource.FromVisual(tile) == null || _fullscreen) return;
+            if (tile.Running == null || PresentationSource.FromVisual(tile) == null || (_fullscreen && !_revealed)) return;
             string key = tile.Running.Key;
             var dpi = VisualTreeHelper.GetDpi(this);
             var top = tile.PointToScreen(new Point(tile.ActualWidth / 2, 0));
