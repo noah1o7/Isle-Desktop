@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isle – a calm, Mac-style desktop for Windows</title>
+<meta name="description" content="Isle adds a top bar, a Dynamic Island, a dock and a start menu to Windows – in one calm dark design. Free for Windows 10 and 11.">
+<meta name="theme-color" content="#14122A">
+<meta property="og:title" content="Isle – a calm, Mac-style desktop for Windows">
+<meta property="og:description" content="Top bar, Dynamic Island, dock and start menu for Windows. Free and open source.">
+<meta property="og:image" content="https://raw.githubusercontent.com/noah1o7/Isle-Desktop/main/docs/banner-en.svg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314122A'/%3E%3Crect x='12' y='24' width='40' height='16' rx='8' fill='%23000'/%3E%3Ccircle cx='44' cy='32' r='3' fill='%23E9967A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14122A;        /* Nachthimmel – Grundfläche */
+  --ink-2:#1C1938;      /* etwas heller für Flächen */
+  --mauve:#6C4A8C;      /* Dämmerung */
+  --ember:#E9967A;      /* Abendrot – Akzent */
+  --ember-deep:#D9785A;
+  --mist:#EDE9F5;       /* Text */
+  --slate:#A39CC0;      /* Nebentext */
+  --line:rgba(237,233,245,.12);
+  --island:#000;
+  --display:'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --body:'Figtree', 'Segoe UI', system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:56px}
+body{margin:0;background:var(--ink);color:var(--mist);font:400 17px/1.6 var(--body);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img,svg{display:block}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ember);outline-offset:3px;border-radius:6px}
+
+/* ---------------------------------------------------------------- Top-Bar = Navigation */
+.topbar{position:fixed;inset:0 0 auto 0;height:40px;z-index:50;display:flex;align-items:center;gap:6px;padding:0 14px;
+  font-size:14px;color:#fff;transition:background .3s, backdrop-filter .3s}
+.topbar.scrolled{background:rgba(20,18,42,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.tb-logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;padding:4px 8px;border-radius:7px}
+.tb-logo .pill{width:22px;height:11px;border-radius:6px;background:#fff;position:relative}
+.tb-logo .pill::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;border-radius:50%;background:var(--ember-deep)}
+.tb-links{display:flex;gap:2px;margin-left:6px}
+.tb-links a{text-decoration:none;padding:4px 10px;border-radius:7px;opacity:.86}
+.tb-links a:hover{background:rgba(255,255,255,.14);opacity:1}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:4px}
+.tb-lang{border:0;background:none;padding:4px 9px;border-radius:7px;font-weight:600;font-size:12.5px;opacity:.85;cursor:pointer}
+.tb-lang:hover{background:rgba(255,255,255,.14);opacity:1}
+.tb-clock{padding:4px 8px;font-variant-numeric:tabular-nums;opacity:.92;white-space:nowrap}
+.tb-dl{text-decoration:none;background:#fff;color:var(--ink);font-weight:600;padding:5px 12px;border-radius:8px;margin-left:6px;font-size:13.5px}
+.tb-dl:hover{background:var(--mist)}
+
+/* ---------------------------------------------------------------- Einstieg: Abendhimmel */
+.hero{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;display:flex;flex-direction:column;align-items:center;
+  background:linear-gradient(180deg,#191B44 0%,#3B2D63 38%,var(--mauve) 62%,#C98580 86%,var(--ember) 100%)}
+.hero .sun{position:absolute;left:68%;top:68%;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,#FFE2C2 0%,rgba(255,211,165,.55) 45%,rgba(255,211,165,0) 70%)}
+.hero .mtn{position:absolute;inset:auto 0 0 0;width:100%;height:46%}
+.hero-island-wrap{position:relative;z-index:2;margin-bottom:48px;margin-top:clamp(64px,12vh,140px);display:flex;justify-content:center;width:100%;padding:0 16px}
+.hero-island{background:var(--island);color:#fff;width:min(680px,100%);border-radius:38px;
+  box-shadow:0 24px 60px rgba(0,0,0,.45);clip-path:inset(0 0 0 0 round 38px);
+  /* Startet als kleine Pille und wird aufgedeckt – reines CSS, keine Layout-Sprünge */
+  animation:islandOpen .8s .5s cubic-bezier(.2,1.1,.3,1) backwards}
+.hero-island .inner{padding:40px clamp(22px,5vw,52px) 38px;animation:fadeIn .45s .95s ease backwards}
+@keyframes islandOpen{from{clip-path:inset(0 calc(50% - 74px) calc(100% - 38px) calc(50% - 74px) round 19px)}}
+@keyframes fadeIn{from{opacity:0}}
+.hero h1{font:700 clamp(38px,6.4vw,72px)/1.04 var(--display);letter-spacing:-.012em;margin:0 0 18px;font-variation-settings:"opsz" 96}
+.hero p.lead{font-size:clamp(17px,2vw,19.5px);color:#CFC9E2;margin:0 0 28px;max-width:52ch}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;border-radius:12px;padding:13px 20px;font-size:16px;border:0;cursor:pointer}
+.btn-primary{background:var(--ember);color:#2A1420}
+.btn-primary:hover{background:#F2A88E}
+.btn-ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.14)}
+.btn-ghost:hover{background:rgba(255,255,255,.14)}
+.fine{font-size:14px;color:var(--slate);margin-top:16px}
+
+/* Dock (im Einstieg und als Demo) */
+.dock{display:flex;align-items:flex-end;gap:10px;padding:10px 12px 12px;border-radius:22px;
+  background:rgba(28,28,30,.72);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  box-shadow:0 18px 50px rgba(0,0,0,.4)}
+/* Dock steht im normalen Fluss unten – überlappt nie die Karte, auch auf kleinen Bildschirmen */
+.hero .dock{position:relative;z-index:3;margin:auto 0 22px}
+.dock .tile{position:relative;display:flex;flex-direction:column;align-items:center;text-decoration:none;border:0;background:none;padding:0;cursor:pointer}
+.dock .tile svg{width:var(--s,48px);height:var(--s,48px);transition:width .14s ease-out,height .14s ease-out}
+.dock .tile .dot{width:4px;height:4px;border-radius:50%;background:#F5F5F7;margin-top:4px;opacity:0}
+.dock .tile.run .dot{opacity:1}
+.dock .tile .bubble{position:absolute;bottom:calc(100% + 10px);white-space:nowrap;background:rgba(44,44,46,.95);border:1px solid #3A3A3C;
+  font-size:13px;padding:4px 10px;border-radius:8px;color:#fff;opacity:0;pointer-events:none;transition:opacity .12s}
+.dock .tile:hover .bubble,.dock .tile:focus-visible .bubble{opacity:1}
+.dock .sep{width:1px;align-self:stretch;margin:6px 2px 10px;background:rgba(255,255,255,.18)}
+
+/* ---------------------------------------------------------------- Abschnitte */
+main section{padding:clamp(56px,7vw,96px) 20px}
+.wrap{max-width:1120px;margin:0 auto}
+.split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(32px,6vw,80px);align-items:center}
+.split.flip{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+.split.flip .copy{order:2}
+h2{font:700 clamp(32px,4.4vw,48px)/1.08 var(--display);letter-spacing:-.02em;margin:0 0 18px}
+h3{font:700 22px/1.25 var(--display);margin:0 0 10px}
+.copy p{color:#D4CFE6;margin:0 0 14px;max-width:60ch}
+.copy ul{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.copy li{padding-left:22px;position:relative;color:#D4CFE6}
+.copy li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--ember)}
+.copy .hint{font-size:14.5px;color:var(--slate);margin:22px 0 0}
+.stage{position:relative;border-radius:22px;padding:clamp(20px,4vw,40px);
+  background:linear-gradient(160deg,#221E44,#2E2350 60%,#3A2A55);border:1px solid var(--line);min-height:300px;display:flex;align-items:center;justify-content:center}
+
+/* Insel-Demo */
+.isl{width:min(380px,100%);background:#000;border-radius:34px;padding:20px 22px 16px;box-shadow:0 20px 50px rgba(0,0,0,.45);color:#F5F5F7;font-size:14px}
+.isl-head{display:flex;align-items:center;justify-content:space-between;height:26px}
+.isl-tabs{display:flex;gap:14px}
+.isl-tab{background:none;border:0;padding:0;font-weight:600;font-size:14px;color:#8E8E93;cursor:pointer}
+.isl-tab[aria-selected="true"]{color:#F5F5F7}
+.isl-moon{background:none;border:0;padding:4px 8px;border-radius:13px;cursor:pointer;color:#8E8E93;display:flex}
+.isl-moon[aria-pressed="true"]{color:#BF5AF2;background:rgba(191,90,242,.18)}
+.isl-x{width:26px;height:26px;border-radius:50%;background:#1C1C1E;border:0;display:grid;place-items:center;color:#8E8E93;cursor:pointer}
+.isl-page{min-height:142px;margin-top:12px}
+.isl-page[hidden]{display:none}
+.music{display:grid;grid-template-columns:76px 1fr auto;gap:16px}
+.art{width:76px;height:76px;border-radius:12px;background:radial-gradient(circle at 70% 30%,rgba(255,255,255,.3) 0 14%,transparent 15%),
+  radial-gradient(circle at 30% 70%,rgba(255,255,255,.18) 0 10%,transparent 11%),linear-gradient(135deg,#FF6B6B,#C850C0 50%,#4158D0)}
+.m-app{font-size:11.5px;color:#8E8E93}
+.m-title{font-weight:600;font-size:15.5px;line-height:1.3}
+.m-artist{font-size:13px;color:#8E8E93}
+.m-ctrl{display:flex;align-items:center;gap:6px;margin:6px 0 0 -7px}
+.m-ctrl button{width:32px;height:32px;border-radius:50%;border:0;background:none;display:grid;place-items:center;cursor:pointer;color:#F5F5F7}
+.m-ctrl button:hover{background:rgba(255,255,255,.12)}
+.m-ctrl .pp{width:34px;height:34px;background:#1F1F21}
+.eq{display:flex;align-items:flex-end;gap:2px;height:14px;margin-top:24px}
+.eq i{width:3px;background:#F5F5F7;border-radius:2px;height:30%}
+.playing .eq i{animation:eq .5s ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-delay:-.2s!important}.eq i:nth-child(3){animation-delay:-.35s!important}.eq i:nth-child(4){animation-delay:-.1s!important}
+@keyframes eq{from{height:22%}to{height:100%}}
+.prog{margin-top:14px}
+.prog .track{height:3px;border-radius:2px;background:#3A3A3C;position:relative}
+.prog .fill{position:absolute;inset:0 auto 0 0;background:#F5F5F7;border-radius:2px;width:60%}
+.prog .fill::after{content:"";position:absolute;right:-4.5px;top:-3px;width:9px;height:9px;border-radius:50%;background:#F5F5F7}
+.prog .times{display:flex;justify-content:space-between;font-size:11px;color:#8E8E93;margin-top:4px;font-variant-numeric:tabular-nums}
+.dev{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:6px 10px;border-radius:8px;cursor:pointer;color:#8E8E93;font-size:13.5px;text-align:left}
+.dev:hover{background:#1C1C1E}
+.dev[aria-checked="true"]{color:#F5F5F7}
+.dev .ck{margin-left:auto;visibility:hidden}
+.dev[aria-checked="true"] .ck{visibility:visible}
+.vol{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:#8E8E93}
+.vol input{flex:1;accent-color:#F5F5F7}
+.rem{display:flex;align-items:center;gap:10px;padding:5px 4px;font-size:13.5px}
+.rem button{width:15px;height:15px;border-radius:50%;border:1.4px solid #8E8E93;background:none;cursor:pointer;padding:0;flex:none}
+.rem button:hover{background:rgba(245,245,247,.35)}
+.rem .when{margin-left:auto;color:#8E8E93;font-size:12px}
+.rem-in{width:100%;margin-top:8px;background:#1C1C1E;border:1px solid #2C2C2E;border-radius:9px;padding:7px 10px;font-size:13px;color:#F5F5F7}
+.isl-foot{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#8E8E93;margin-top:10px}
+.isl-dots{display:flex;gap:6px}
+.isl-dots button{width:6px;height:6px;border-radius:50%;border:0;padding:0;background:#48484A;cursor:pointer}
+.isl-dots button[aria-current="true"]{background:#F5F5F7}
+.isl-rem-btn{background:none;border:0;color:#8E8E93;font-size:12px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.isl-rem-btn:hover{background:#1C1C1E}
+
+/* Top-Bar-Demo */
+.tbd{width:100%}
+.tbd-screen{height:150px;border-radius:14px;position:relative;overflow:hidden;transition:background .6s;border:1px solid var(--line)}
+.tbd-bar{position:absolute;inset:0 0 auto 0;height:30px;display:flex;align-items:center;padding:0 12px;font-size:12.5px;gap:10px}
+.tbd-side{display:flex;align-items:center;gap:10px;transition:color .5s,text-shadow .5s}
+.tbd-side.right{margin-left:auto}
+.tbd-side .pill{width:18px;height:9px;border-radius:5px;background:currentColor}
+.tbd-island{position:absolute;left:50%;top:3px;transform:translateX(-50%);width:84px;height:22px;border-radius:11px;background:#000}
+.on-dark{color:#F5F5F7;text-shadow:0 0 6px rgba(0,0,0,.5)}
+.on-light{color:#1C1C1E;text-shadow:0 0 6px rgba(255,255,255,.6)}
+.swatches{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.swatch{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:12px;padding:6px 12px 6px 6px;cursor:pointer;font-size:14px}
+.swatch i{width:34px;height:22px;border-radius:6px;display:block}
+.swatch[aria-pressed="true"]{border-color:var(--ember);background:rgba(233,150,122,.12)}
+
+/* Dock-Demo */
+.dock-demo{display:flex;flex-direction:column;align-items:center;gap:0;width:100%}
+.preview{display:flex;gap:8px;background:#1C1C1E;border:1px solid #3A3A3C;border-radius:12px;padding:8px;margin-bottom:14px;
+  box-shadow:0 16px 40px rgba(0,0,0,.45);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none}
+.preview.show{opacity:1;transform:none}
+.pv{width:150px;border-radius:8px;padding:6px}
+.pv:first-child{background:rgba(255,255,255,.08)}
+.pv b{display:block;font-size:11.5px;font-weight:500;margin:0 0 6px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv .win{height:72px;border-radius:5px;background:#121214;display:grid;grid-template-columns:30% 1fr;gap:6px;padding:7px}
+.pv .win i{background:#2C2C2E;border-radius:3px}
+.pv .win span{display:grid;gap:5px;align-content:start}
+.pv .win span i{height:5px;background:#3A3A3C}
+
+/* Startmenü-Demo */
+.sm{width:min(460px,100%);background:#1C1C1E;border:1px solid #3A3A3C;border-radius:20px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.sm-search{display:flex;align-items:center;gap:10px;background:#2C2C2E;border:1px solid #3A3A3C;border-radius:12px;padding:0 12px;height:42px}
+.sm-search input{flex:1;background:none;border:0;outline:none;font-size:15px;color:#F5F5F7}
+.sm-search input::placeholder{color:#8E8E93}
+.sm-label{font-size:12.5px;color:#8E8E93;font-weight:600;margin:16px 4px 8px}
+.sm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;min-height:200px;align-content:start}
+.sm-app{display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid transparent;background:none;border-radius:12px;padding:10px 4px;cursor:pointer;font-size:12px;color:#F5F5F7}
+.sm-app:hover{background:#2C2C2E}
+.sm-app.sel{background:#2C2C2E;border-color:#0A84FF}
+.sm-app svg{width:40px;height:40px}
+.sm-app.bounce svg{animation:bounce .8s}
+@keyframes bounce{0%,100%{transform:none}25%{transform:translateY(-12px)}50%{transform:none}70%{transform:translateY(-6px)}}
+.sm-empty{grid-column:1/-1;color:#8E8E93;font-size:13.5px;padding:8px 4px}
+
+/* Sicherheit */
+.trust{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(24px,4vw,48px);margin-top:36px}
+.trust div{border-top:2px solid var(--ember);padding-top:16px}
+.trust p{color:#D4CFE6;margin:0}
+
+/* Installation (echte Reihenfolge → nummeriert) */
+.steps{counter-reset:s;list-style:none;padding:0;margin:36px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,36px)}
+.steps li{counter-increment:s;position:relative;padding-top:56px}
+.steps li::before{content:counter(s);position:absolute;top:0;left:0;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  font:700 18px var(--display);background:var(--ember);color:#2A1420}
+.steps p{color:#D4CFE6;margin:0}
+kbd{font:600 .85em var(--body);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-bottom-width:2px;border-radius:6px;padding:1px 6px}
+.install-cta{margin-top:40px}
+
+/* Fragen */
+.faq{max-width:760px;margin-top:28px}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-weight:600;font-size:18px;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font:500 24px/1 var(--display);color:var(--ember);transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq p{color:#D4CFE6;margin:12px 0 0;max-width:62ch}
+
+footer{border-top:1px solid var(--line);padding:36px 20px 48px;color:var(--slate);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
+
+/* Handy */
+@media (max-width:860px){
+  .tb-links{display:none}
+  .split,.split.flip{grid-template-columns:1fr}
+  .split.flip .copy{order:0}
+  .trust,.steps{grid-template-columns:1fr}
+  .hero .dock{gap:6px;padding:8px 9px 10px}
+  .hero .dock .tile svg{--s:38px}
+  .tb-clock{display:none}
+}
+@media (max-width:520px){ .tbd-side.right span:first-child{display:none} }
+@media (max-width:420px){ .hero .dock .tile:nth-child(n+7),.hero .dock .sep{display:none} .sm-grid{grid-template-columns:repeat(3,1fr)} }
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- Isles Top-Bar als Navigation -->
+<header class="topbar" id="topbar">
+  <a class="tb-logo" href="#top" aria-label="Isle"><span class="pill"></span><span>Isle</span></a>
+  <nav class="tb-links" aria-label="Sections">
+    <a href="#island" data-i18n="nav.island">Island</a>
+    <a href="#topbar-sec" data-i18n="nav.topbar">Top bar</a>
+    <a href="#dock" data-i18n="nav.dock">Dock</a>
+    <a href="#start" data-i18n="nav.start">Start menu</a>
+    <a href="#faq" data-i18n="nav.faq">Questions</a>
+  </nav>
+  <div class="tb-right">
+    <button class="tb-lang" id="lang" aria-label="Switch language" title="Deutsch / English">EN</button>
+    <span class="tb-clock" id="clock"></span>
+    <a class="tb-dl" href="https://github.com/noah1o7/Isle-Desktop/releases/latest" data-i18n="nav.download">Download</a>
+  </div>
+</header>
+
+<!-- Einstieg -->
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="sun" aria-hidden="true"></div>
+  <svg class="mtn" viewBox="0 0 1440 420" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,170 L120,120 L250,180 L380,90 L520,160 L660,70 L800,150 L930,95 L1080,170 L1210,105 L1340,160 L1440,120 V420 H0Z" fill="#3B2A55"/>
+    <path d="M0,240 L150,170 L300,230 L460,150 L610,225 L760,160 L900,235 L1060,170 L1220,240 L1360,180 L1440,215 V420 H0Z" fill="#2A1F42"/>
+    <path d="M0,320 L170,250 L330,305 L500,240 L680,310 L860,255 L1030,320 L1200,265 L1440,320 V420 H0Z" fill="#18142A"/>
+  </svg>
+
+  <div class="hero-island-wrap">
+    <div class="hero-island" id="heroIsland">
+      <div class="inner">
+        <h1 id="hero-title" data-i18n="hero.title">Make Windows feel like home.</h1>
+        <p class="lead" data-i18n="hero.lead">Isle adds a top bar, a Dynamic Island, a dock and a fresh start menu to Windows. Your apps stay exactly where they are, and quitting Isle puts everything back.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/noah1o7/Isle-Desktop/releases/latest">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+            <span data-i18n="hero.download">Download for Windows</span>
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/noah1o7/Isle-Desktop" data-i18n="hero.source">View the source</a>
+        </div>
+        <p class="fine" data-i18n="hero.fine">Free and open source, for Windows 10 (2004+) and Windows 11.</p>
+      </div>
+    </div>
+  </div>
+
+  <nav class="dock" id="heroDock" aria-label="Jump to a part of Isle"></nav>
+</section>
+
+<main>
+
+<!-- Insel -->
+<section id="island" aria-labelledby="island-title">
+  <div class="wrap split">
+    <div class="copy">
+      <h2 id="island-title" data-i18n="island.title">The island knows what's playing.</h2>
+      <p data-i18n="island.p1">A small black pill sits at the top of your screen. When music plays it shows the cover and a few bouncing bars. Move the mouse over it and it opens into a card with everything you need.</p>
+      <ul>
+        <li data-i18n="island.l1">Skip, pause and seek in Spotify, YouTube, VLC and any app that uses Windows media controls</li>
+        <li data-i18n="island.l2">Switch between speakers and headphones, or scroll over the island to change the volume</li>
+        <li data-i18n="island.l3">Type “18:30 laundry” and the island reminds you at 18:30</li>
+        <li data-i18n="island.l4">The moon turns on focus: no song pop-ups, reminders still come through</li>
+      </ul>
+      <p class="hint" data-i18n="island.hint">Try it: switch tabs, press play, add a reminder.</p>
+    </div>
+    <div class="stage">
+      <div class="isl" id="isl">
+        <div class="isl-head">
+          <div class="isl-tabs" role="tablist">
+            <button class="isl-tab" role="tab" aria-selected="true" data-page="0" data-i18n="isl.music">Music</button>
+            <button class="isl-tab" role="tab" aria-selected="false" data-page="1" data-i18n="isl.devices">Devices</button>
+          </div>
+          <button class="isl-moon" id="moon" aria-pressed="false" aria-label="Focus">
+            <svg width="14" height="14" viewBox="3 3 18 18" fill="currentColor" aria-hidden="true"><path d="M12,3 A6,6 0 0 0 21,12 A9,9 0 1 1 12,3 Z"/></svg>
+          </button>
+          <button class="isl-x" aria-label="Close" id="islX"><svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8"/></svg></button>
+        </div>
+
+        <div class="isl-page" data-p="0">
+          <div class="music" id="music">
+            <div class="art" role="img" aria-label="Album cover"></div>
+            <div>
+              <div class="m-app">Player</div>
+              <div class="m-title">Midnight Drive</div>
+              <div class="m-artist">Neon Avenue</div>
+              <div class="m-ctrl">
+                <button aria-label="Previous" id="prev"><svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M1.5 1v12M12 1.5L4.5 7 12 12.5Z"/></svg></button>
+                <button class="pp" aria-label="Play" id="pp"></button>
+                <button aria-label="Next" id="next"><svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M13.5 1v12M3 1.5L10.5 7 3 12.5Z"/></svg></button>
+              </div>
+            </div>
+            <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="prog"><div class="track"><div class="fill" id="fill"></div></div>
+            <div class="times"><span id="tNow">2:11</span><span>3:38</span></div></div>
+        </div>
+
+        <div class="isl-page" data-p="1" hidden>
+          <div role="radiogroup" aria-label="Output" id="devs"></div>
+          <label class="vol"><span data-i18n="isl.volume">Volume</span><input type="range" min="0" max="100" value="64" id="vol"><span id="volT">64 %</span></label>
+        </div>
+
+        <div class="isl-page" data-p="2" hidden>
+          <div id="rems"></div>
+          <input class="rem-in" id="remIn" data-i18n-ph="isl.remph" placeholder="New reminder … e.g. 18:30 laundry">
+        </div>
+
+        <div class="isl-foot">
+          <span id="islDate"></span>
+          <div class="isl-dots" id="dots"></div>
+          <button class="isl-rem-btn" data-page="2" data-i18n="isl.reminders">Reminders</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Top-Bar -->
+<section id="topbar-sec" aria-labelledby="tb-title">
+  <div class="wrap split flip">
+    <div class="copy">
+      <h2 id="tb-title" data-i18n="tb.title">A top bar that reads your wallpaper.</h2>
+      <p data-i18n="tb.p1">The bar is transparent. Isle looks at what's behind it, left and right separately, and picks dark or white text so you can always read it.</p>
+      <ul>
+        <li data-i18n="tb.l1">Active app, weather, battery, keyboard language, date and time</li>
+        <li data-i18n="tb.l2">A green or orange dot when an app uses your camera or microphone</li>
+        <li data-i18n="tb.l3">Tray icons like Discord or Steam open right below the little arrow</li>
+        <li data-i18n="tb.l4">Choose how bold the text is, from thin to bold</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <div class="tbd">
+        <div class="tbd-screen" id="tbScreen">
+          <div class="tbd-bar">
+            <div class="tbd-side" id="tbL"><span class="pill"></span><b data-i18n="tb.app">Music</b></div>
+            <div class="tbd-island" aria-hidden="true"></div>
+            <div class="tbd-side right" id="tbR"><span>☁ 12°</span><span>EN</span><span id="tbClock">9:41</span></div>
+          </div>
+        </div>
+        <div class="swatches" role="group" aria-label="Wallpaper">
+          <button class="swatch" data-wall="dusk" aria-pressed="true"><i style="background:linear-gradient(90deg,#1D2048,#6C4A8C)"></i><span data-i18n="tb.dusk">Dusk</span></button>
+          <button class="swatch" data-wall="dune" aria-pressed="false"><i style="background:linear-gradient(90deg,#F3EEE6,#E4ECF5)"></i><span data-i18n="tb.dune">Dune</span></button>
+          <button class="swatch" data-wall="split" aria-pressed="false"><i style="background:linear-gradient(90deg,#F3E7D6 50%,#232044 50%)"></i><span data-i18n="tb.split">Half and half</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Dock -->
+<section id="dock" aria-labelledby="dock-title">
+  <div class="wrap split">
+    <div class="copy">
+      <h2 id="dock-title" data-i18n="dock.title">A dock that keeps up with you.</h2>
+      <p data-i18n="dock.p1">Your pinned apps, everything that's running, and a dot under each open app. Icons grow as the mouse passes over them.</p>
+      <ul>
+        <li data-i18n="dock.l1">Hover a running app to see live previews of its windows</li>
+        <li data-i18n="dock.l2">Drag icons to reorder them, or drag one up and out to remove it</li>
+        <li data-i18n="dock.l3">Right-click to close all windows or end a stuck app</li>
+        <li data-i18n="dock.l4">Brings over the apps pinned to your Windows taskbar</li>
+      </ul>
+      <p class="hint" data-i18n="dock.hint">Try it: move the mouse along the dock and rest on Mail.</p>
+    </div>
+    <div class="stage">
+      <div class="dock-demo">
+        <div class="preview" id="preview" aria-hidden="true">
+          <div class="pv"><b data-i18n="dock.w1">Inbox – Mail</b><div class="win"><i></i><span><i></i><i></i><i></i><i></i></span></div></div>
+          <div class="pv"><b data-i18n="dock.w2">Draft: Hello</b><div class="win"><i></i><span><i></i><i></i><i></i></span></div></div>
+        </div>
+        <div class="dock" id="demoDock" aria-label="Dock demo"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Startmenü -->
+<section id="start" aria-labelledby="start-title">
+  <div class="wrap split flip">
+    <div class="copy">
+      <h2 id="start-title" data-i18n="start.title">Press the Windows key and start typing.</h2>
+      <p data-i18n="start.p1">Isle's start menu opens in the middle of the screen. Type a few letters, press Enter, done. Shortcuts like Win+D and Win+L keep working as always.</p>
+      <ul>
+        <li data-i18n="start.l1">All your apps, including Store apps, with sharp icons</li>
+        <li data-i18n="start.l2">Recent files and a web search when nothing matches</li>
+        <li data-i18n="start.l3">Lock, sleep, restart and shut down in one place</li>
+      </ul>
+      <p class="hint" data-i18n="start.hint">Try it: type into the search field and press Enter.</p>
+    </div>
+    <div class="stage">
+      <div class="sm">
+        <label class="sm-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M15.5 15.5L21 21"/></svg>
+          <input id="smIn" data-i18n-ph="start.ph" placeholder="Search apps and files" autocomplete="off">
+        </label>
+        <div class="sm-label" id="smLabel" data-i18n="start.all">All apps</div>
+        <div class="sm-grid" id="smGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Vertrauen -->
+<section aria-labelledby="trust-title">
+  <div class="wrap">
+    <h2 id="trust-title" data-i18n="trust.title">Your Windows stays yours.</h2>
+    <div class="trust">
+      <div><h3 data-i18n="trust.h1">Everything comes back</h3><p data-i18n="trust.p1">Isle hides the Windows taskbar only while it runs. Quit it, or even if it crashes, and a small watchdog brings the taskbar right back.</p></div>
+      <div><h3 data-i18n="trust.h2">Nothing is installed</h3><p data-i18n="trust.p2">Isle is a single program file. It doesn't change system files, and it doesn't need administrator rights.</p></div>
+      <div><h3 data-i18n="trust.h3">Nothing leaves your PC</h3><p data-i18n="trust.p3">No account, no tracking. The only connection is the weather from Open-Meteo, and only after you set a location.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Installation -->
+<section id="install" aria-labelledby="install-title">
+  <div class="wrap">
+    <h2 id="install-title" data-i18n="inst.title">Up and running in a minute.</h2>
+    <ol class="steps">
+      <li><h3 data-i18n="inst.h1">Download</h3><p data-i18n="inst.p1">Get the ZIP file from the latest release on GitHub.</p></li>
+      <li><h3 data-i18n="inst.h2">Unzip and start</h3><p data-i18n="inst.p2">Right-click, Extract All, then open Isle.exe. If Windows warns you, choose More info and Run anyway.</p></li>
+      <li><h3 data-i18n="inst.h3">Make it yours</h3><p data-i18n="inst.p3">Click the pill in the top left for settings. To quit, press <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>Q</kbd>.</p></li>
+    </ol>
+    <div class="install-cta">
+      <a class="btn btn-primary" href="https://github.com/noah1o7/Isle-Desktop/releases/latest">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+        <span data-i18n="hero.download">Download for Windows</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Fragen -->
+<section id="faq" aria-labelledby="faq-title">
+  <div class="wrap">
+    <h2 id="faq-title" data-i18n="faq.title">Questions</h2>
+    <div class="faq">
+      <details><summary data-i18n="faq.q1">Is Isle a new operating system?</summary><p data-i18n="faq.a1">No. Isle is a program that runs on top of Windows. Windows and all your apps keep working the way they always do.</p></details>
+      <details><summary data-i18n="faq.q2">How do I get my normal taskbar back?</summary><p data-i18n="faq.a2">Quit Isle with Ctrl + Alt + Q, or untick “hide Windows taskbar” in the Isle menu. The taskbar is back instantly.</p></details>
+      <details><summary data-i18n="faq.q3">Why does Windows warn me the first time?</summary><p data-i18n="faq.a3">Isle isn't signed with a paid certificate, and Windows warns about every new unsigned program. The complete source code is public on GitHub.</p></details>
+      <details><summary data-i18n="faq.q4">Which languages does Isle speak?</summary><p data-i18n="faq.a4">The app itself is in German for now. An English interface is planned.</p></details>
+      <details><summary data-i18n="faq.q5">Is it free?</summary><p data-i18n="faq.a5">Yes. Isle is a free hobby project. No subscription, no ads, no account.</p></details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span data-i18n="foot.note">Isle is an independent hobby project and not affiliated with Apple or Microsoft.</span>
+    <a href="https://github.com/noah1o7/Isle-Desktop">GitHub</a>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ Texte (EN / DE)
+  const DE = {
+    "nav.island":"Insel","nav.topbar":"Top-Bar","nav.dock":"Dock","nav.start":"Startmenü","nav.faq":"Fragen","nav.download":"Herunterladen",
+    "hero.title":"Mach Windows ein bisschen ruhiger.","hero.lead":"Isle bringt eine Top-Bar, eine Dynamic Island, ein Dock und ein neues Startmenü auf Windows. Deine Programme bleiben, wo sie sind, und beim Beenden ist alles wieder wie vorher.",
+    "hero.download":"Für Windows herunterladen","hero.source":"Quellcode ansehen","hero.fine":"Kostenlos und quelloffen, für Windows 10 (ab 2004) und Windows 11.",
+    "island.title":"Die Insel weiß, was läuft.","island.p1":"Oben in der Mitte sitzt eine kleine schwarze Pille. Läuft Musik, zeigt sie das Cover und ein paar hüpfende Balken. Fährst du mit der Maus drüber, wird sie zu einer Karte mit allem, was du brauchst.",
+    "island.l1":"Weiter, Pause und Spulen in Spotify, YouTube, VLC und jeder App mit Windows-Mediensteuerung","island.l2":"Zwischen Lautsprechern und Kopfhörern wechseln oder per Mausrad die Lautstärke ändern","island.l3":"„18:30 Wäsche“ eintippen, und um 18:30 erinnert dich die Insel","island.l4":"Der Mond schaltet Fokus ein: keine Song-Hinweise, Erinnerungen kommen trotzdem",
+    "island.hint":"Probier's aus: Reiter wechseln, Play drücken, Erinnerung eintragen.",
+    "isl.music":"Musik","isl.devices":"Geräte","isl.reminders":"Erinnerungen","isl.volume":"Lautstärke","isl.remph":"Neue Erinnerung … z. B. 18:30 Wäsche",
+    "tb.title":"Eine Top-Bar, die deinen Hintergrund liest.","tb.p1":"Die Leiste ist durchsichtig. Isle schaut, was dahinter liegt, links und rechts getrennt, und wählt dunkle oder weiße Schrift, damit du sie immer lesen kannst.",
+    "tb.l1":"Aktive App, Wetter, Akku, Tastatursprache, Datum und Uhr","tb.l2":"Ein grüner oder oranger Punkt, wenn eine App Kamera oder Mikrofon nutzt","tb.l3":"Tray-Icons wie Discord oder Steam öffnen sich direkt unter dem kleinen Pfeil","tb.l4":"Schriftstärke einstellbar, von dünn bis fett",
+    "tb.app":"Musik","tb.dusk":"Dämmerung","tb.dune":"Düne","tb.split":"Halb und halb",
+    "dock.title":"Ein Dock, das mitdenkt.","dock.p1":"Deine angehefteten Apps, alles, was gerade läuft, und ein Punkt unter jeder offenen App. Die Icons wachsen, wenn die Maus darüberfährt.",
+    "dock.l1":"Maus auf eine laufende App: Live-Vorschau ihrer Fenster","dock.l2":"Icons zum Sortieren ziehen, oder nach oben herausziehen zum Entfernen","dock.l3":"Rechtsklick, um alle Fenster zu schließen oder eine hängende App zu beenden","dock.l4":"Übernimmt die Apps aus deiner Windows-Taskleiste",
+    "dock.hint":"Probier's aus: mit der Maus über das Dock fahren und auf Mail bleiben.","dock.w1":"Posteingang – Mail","dock.w2":"Entwurf: Hallo",
+    "start.title":"Windows-Taste drücken, lostippen.","start.p1":"Isles Startmenü öffnet sich in der Bildschirmmitte. Ein paar Buchstaben, Enter, fertig. Kürzel wie Win+D und Win+L funktionieren wie immer.",
+    "start.l1":"Alle Apps, auch aus dem Store, mit scharfen Icons","start.l2":"Zuletzt verwendete Dateien und eine Websuche, wenn nichts passt","start.l3":"Sperren, Energie sparen, Neu starten und Herunterfahren an einem Ort",
+    "start.hint":"Probier's aus: ins Suchfeld tippen und Enter drücken.","start.ph":"Apps und Dateien suchen","start.all":"Alle Apps","start.res":"Ergebnisse","start.none":"Nichts gefunden. Mit Enter im Web suchen.",
+    "trust.title":"Dein Windows bleibt deins.","trust.h1":"Alles kommt zurück","trust.p1":"Isle blendet die Windows-Taskleiste nur aus, solange es läuft. Beim Beenden, und sogar bei einem Absturz, holt ein kleiner Wächter sie sofort zurück.",
+    "trust.h2":"Nichts wird installiert","trust.p2":"Isle ist eine einzige Programmdatei. Es verändert keine Systemdateien und braucht keine Administratorrechte.",
+    "trust.h3":"Nichts verlässt deinen PC","trust.p3":"Kein Konto, kein Tracking. Die einzige Verbindung ist das Wetter von Open-Meteo, und erst, wenn du einen Ort festlegst.",
+    "inst.title":"In einer Minute startklar.","inst.h1":"Herunterladen","inst.p1":"Die ZIP-Datei aus der neuesten Version auf GitHub laden.",
+    "inst.h2":"Entpacken und starten","inst.p2":"Rechtsklick, Alle extrahieren, dann Isle.exe öffnen. Warnt Windows, auf Weitere Informationen und Trotzdem ausführen klicken.",
+    "inst.h3":"Einrichten","inst.p3":"Klick auf die Pille oben links öffnet die Einstellungen. Zum Beenden <kbd>Strg</kbd> <kbd>Alt</kbd> <kbd>Q</kbd> drücken.",
+    "faq.title":"Fragen","faq.q1":"Ist Isle ein neues Betriebssystem?","faq.a1":"Nein. Isle ist ein Programm, das über Windows läuft. Windows und alle deine Apps funktionieren ganz normal weiter.",
+    "faq.q2":"Wie bekomme ich meine normale Taskleiste zurück?","faq.a2":"Isle mit Strg + Alt + Q beenden, oder im Isle-Menü den Haken bei „Windows-Taskleiste ausblenden“ entfernen. Die Taskleiste ist sofort wieder da.",
+    "faq.q3":"Warum warnt Windows beim ersten Start?","faq.a3":"Isle ist nicht mit einem kostenpflichtigen Zertifikat signiert, und Windows warnt bei jedem neuen unsignierten Programm. Der komplette Quellcode ist öffentlich auf GitHub.",
+    "faq.q4":"Welche Sprachen spricht Isle?","faq.a4":"Die App selbst ist im Moment auf Deutsch. Eine englische Oberfläche ist geplant.",
+    "faq.q5":"Kostet Isle etwas?","faq.a5":"Nein. Isle ist ein kostenloses Hobby-Projekt. Kein Abo, keine Werbung, kein Konto.",
+    "foot.note":"Isle ist ein unabhängiges Hobby-Projekt und gehört weder zu Apple noch zu Microsoft.",
+    "devs":["Lautsprecher","Kopfhörer","Monitor-Lautsprecher"],"apps":["Browser","Musik","Mail","Fotos","Terminal","Einstellungen","Notizen","Kalender","Dateien","Spiele","Chat","Code"],
+    "rem1":"Wäsche","rem2":"Mama anrufen","dock.tip":["Start","Insel","Top-Bar","Dock","Startmenü","Fragen","Herunterladen","GitHub"],"demoTip":["Start","Browser","Musik","Mail","Fotos","Chat","Spiele","Einstellungen"]
+  };
+  const EN = {
+    "devs":["Speakers","Headphones","Monitor speakers"],"apps":["Browser","Music","Mail","Photos","Terminal","Settings","Notes","Calendar","Files","Games","Chat","Code"],
+    "start.res":"Results","start.none":"No match. Press Enter to search the web.","rem1":"Laundry","rem2":"Call mum",
+    "dock.tip":["Start","Island","Top bar","Dock","Start menu","Questions","Download","GitHub"],"demoTip":["Start","Browser","Music","Mail","Photos","Chat","Games","Settings"]
+  };
+  const originals = {};
+  document.querySelectorAll("[data-i18n]").forEach(el => originals[el.dataset.i18n] = el.innerHTML);
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => originals["ph:" + el.dataset.i18nPh] = el.placeholder);
+
+  let lang = "en";
+  const qp = new URLSearchParams(location.search).get("lang");
+  try { lang = qp || localStorage.getItem("isle-lang") || (navigator.language || "en").slice(0, 2); } catch (e) { lang = qp || "en"; }
+  if (lang !== "de") lang = "en";
+  const t = key => lang === "de" ? (DE[key] ?? EN[key]) : EN[key];
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.getElementById("lang").textContent = lang.toUpperCase();
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const k = el.dataset.i18n;
+      el.innerHTML = lang === "de" && DE[k] ? DE[k] : originals[k];
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+      const k = el.dataset.i18nPh;
+      el.placeholder = lang === "de" && DE[k] ? DE[k] : originals["ph:" + k];
+    });
+    document.title = lang === "de" ? "Isle – eine ruhige, Mac-artige Oberfläche für Windows" : "Isle – a calm, Mac-style desktop for Windows";
+    buildDocks(); buildDevices(); buildReminders(); filterApps(); tick();
+  }
+  document.getElementById("lang").addEventListener("click", () => {
+    lang = lang === "de" ? "en" : "de";
+    try { localStorage.setItem("isle-lang", lang); } catch (e) {}
+    applyLang();
+  });
+
+  // ------------------------------------------------------------ Uhr
+  function tick() {
+    const now = new Date();
+    const loc = lang === "de" ? "de-DE" : "en-GB";
+    const d = now.toLocaleDateString(loc, { weekday: "short", day: "numeric", month: "short" });
+    const h = now.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" });
+    document.getElementById("clock").textContent = d + "   " + h;
+    document.getElementById("tbClock").textContent = h;
+    document.getElementById("islDate").textContent = d;
+  }
+  setInterval(tick, 15000);
+
+  // Top-Bar bekommt beim Scrollen eine Fläche
+  const tb = document.getElementById("topbar");
+  const onScroll = () => tb.classList.toggle("scrolled", window.scrollY > window.innerHeight * 0.6);
+  addEventListener("scroll", onScroll, { passive: true }); onScroll();
+
+  // ------------------------------------------------------------ Icons (Platzhalter, keine echten Marken)
+  const ICONS = {
+    start: ["#5E5CE6", "#0A84FF", s => [0,1,2].flatMap(y => [0,1,2].map(x => `<rect x="${10+x*9.5}" y="${10+y*9.5}" width="6" height="6" rx="1.6" fill="#fff"/>`)).join("")],
+    globe: ["#5E5CE6", "#0A84FF", () => `<g fill="none" stroke="#fff" stroke-width="2.4"><circle cx="22" cy="22" r="11"/><ellipse cx="22" cy="22" rx="4.6" ry="11"/><path d="M11 22h22"/></g>`],
+    music: ["#FF375F", "#FF9F0A", () => `<path d="M18 30V12l12-3v18" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><circle cx="14.5" cy="30" r="3.6" fill="#fff"/><circle cx="26.5" cy="27" r="3.6" fill="#fff"/>`],
+    mail: ["#0A84FF", "#64D2FF", () => `<g fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"><rect x="10" y="14" width="24" height="16" rx="3"/><path d="M11 16l11 8 11-8"/></g>`],
+    photo: ["#FFD60A", "#FF9F0A", () => `<path d="M10 30l8-10 6 6 4-4 6 8z" fill="#fff"/><circle cx="28" cy="15" r="3.5" fill="#fff"/>`],
+    term: ["#3A3A3C", "#1C1C1E", () => `<path d="M12 16l7 6-7 6M23 29h10" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`],
+    gear: ["#8E8E93", "#48484A", () => [0,45,90,135,180,225,270,315].map(a => `<rect x="19.5" y="8" width="5" height="6" rx="1" fill="#fff" transform="rotate(${a} 22 22)"/>`).join("") + `<circle cx="22" cy="22" r="9" fill="#fff"/><circle cx="22" cy="22" r="4" fill="#5c5c60"/>`],
+    note: ["#FFD60A", "#FFB340", () => `<path d="M12 16h20M12 22h20M12 28h14" stroke="#7A5A00" stroke-width="2.2" stroke-linecap="round"/>`],
+    cal: ["#FF453A", "#FF6961", () => `<rect x="10" y="12" width="24" height="22" rx="3" fill="#fff"/><text x="22" y="30" text-anchor="middle" font-family="Figtree,sans-serif" font-size="14" font-weight="700" fill="#FF453A">7</text>`],
+    folder: ["#64D2FF", "#0A84FF", () => `<path d="M9 14h9l3 3h14v15H9z" fill="#fff" fill-opacity=".92"/>`],
+    game: ["#30D158", "#248A3D", () => `<rect x="9" y="15" width="26" height="14" rx="7" fill="#fff"/><path d="M14 22h6M17 19v6" stroke="#248A3D" stroke-width="2" stroke-linecap="round"/><circle cx="28" cy="21" r="2" fill="#248A3D"/><circle cx="31" cy="24" r="2" fill="#248A3D"/>`],
+    chat: ["#BF5AF2", "#5E5CE6", () => `<path d="M10 13h24v15H20l-6 5v-5h-4z" fill="#fff"/>`],
+    code: ["#0A84FF", "#5E5CE6", () => `<path d="M17 15l-7 7 7 7M27 15l7 7-7 7" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`],
+    island: ["#1C1C1E", "#000000", () => `<rect x="9" y="18" width="26" height="9" rx="4.5" fill="#fff"/><circle cx="30" cy="22.5" r="2" fill="#E9967A"/>`],
+    bar: ["#6C4A8C", "#1D2048", () => `<rect x="8" y="11" width="28" height="4" rx="2" fill="#fff"/><path d="M8 33l9-10 6 6 4-4 9 8z" fill="#E9967A"/>`],
+    dock: ["#2C2C2E", "#1C1C1E", () => `<rect x="8" y="26" width="28" height="8" rx="3" fill="#fff" fill-opacity=".3"/><rect x="11" y="19" width="6" height="6" rx="1.5" fill="#0A84FF"/><rect x="19" y="15" width="8" height="10" rx="2" fill="#FF9F0A"/><rect x="29" y="19" width="6" height="6" rx="1.5" fill="#30D158"/>`],
+    search: ["#5E5CE6", "#BF5AF2", () => `<circle cx="20" cy="20" r="7.5" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M25.5 25.5l7 7" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`],
+    faq: ["#64D2FF", "#5E5CE6", () => `<text x="22" y="30" text-anchor="middle" font-family="Bricolage Grotesque,sans-serif" font-size="22" font-weight="800" fill="#fff">?</text>`],
+    down: ["#E9967A", "#D9785A", () => `<path d="M22 11v15M15 20l7 7 7-7M12 33h20" fill="none" stroke="#2A1420" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`],
+  };
+  let gid = 0;
+  function iconSvg(name) {
+    const [a, b, glyph] = ICONS[name]; const id = "g" + (gid++);
+    return `<svg viewBox="0 0 44 44" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>
+      <rect width="44" height="44" rx="10" fill="url(#${id})"/><rect x=".5" y=".5" width="43" height="43" rx="10" fill="none" stroke="#fff" stroke-opacity=".12"/>${glyph()}</svg>`;
+  }
+
+  // ------------------------------------------------------------ Docks mit Vergrößerung
+  function magnify(dock, base, max) {
+    const tiles = [...dock.querySelectorAll(".tile")];
+    let raf = 0, mx = null;
+    const apply = () => {
+      raf = 0;
+      tiles.forEach(tl => {
+        let s = base;
+        if (mx !== null) {
+          const r = tl.getBoundingClientRect(); const c = r.left + r.width / 2;
+          const d = Math.abs(mx - c) / (base * 2.6);
+          s = base * (1 + (max - 1) * Math.max(0, 1 - d * d));
+        }
+        tl.querySelector("svg").style.setProperty("--s", s.toFixed(1) + "px");
+      });
+    };
+    dock.onmousemove = e => { mx = e.clientX; if (!raf) raf = requestAnimationFrame(apply); };
+    dock.onmouseleave = () => { mx = null; if (!raf) raf = requestAnimationFrame(apply); };
+  }
+
+  function buildDocks() {
+    const small = matchMedia("(max-width:860px)").matches;
+    const hero = document.getElementById("heroDock");
+    const tips = t("dock.tip") || EN["dock.tip"];
+    const heroItems = [["start","#top"],["island","#island"],["bar","#topbar-sec"],["dock","#dock"],["search","#start"],["faq","#faq"],null,
+      ["down","https://github.com/noah1o7/Isle-Desktop/releases/latest"],["code","https://github.com/noah1o7/Isle-Desktop"]];
+    let k = 0;
+    hero.innerHTML = heroItems.map(it => it === null ? '<span class="sep"></span>' :
+      `<a class="tile${k===0?" run":""}" href="${it[1]}"><span class="bubble">${tips[k++]}</span>${iconSvg(it[0])}<span class="dot"></span></a>`).join("");
+    hero.querySelectorAll("svg").forEach(s => s.style.setProperty("--s", (small ? 38 : 50) + "px"));
+    if (!small) magnify(hero, 50, 1.55);
+
+    const demo = document.getElementById("demoDock");
+    const dt = t("demoTip") || EN.demoTip;
+    const items = ["start","globe","music","mail","photo","chat","game","gear"];
+    demo.innerHTML = items.map((n, i) => (i === 1 ? '<span class="sep"></span>' : "") +
+      `<button class="tile${[1,2,3,5].includes(i)?" run":""}" data-name="${n}"><span class="bubble">${dt[i]}</span>${iconSvg(n)}<span class="dot"></span></button>`).join("");
+    demo.querySelectorAll("svg").forEach(s => s.style.setProperty("--s", "44px"));
+    magnify(demo, 44, 1.5);
+    const pv = document.getElementById("preview");
+    let timer;
+    demo.querySelectorAll(".tile").forEach(tl => {
+      tl.addEventListener("mouseenter", () => { clearTimeout(timer); if (tl.dataset.name === "mail") timer = setTimeout(() => pv.classList.add("show"), 300); else pv.classList.remove("show"); });
+    });
+    demo.addEventListener("mouseleave", () => { clearTimeout(timer); timer = setTimeout(() => pv.classList.remove("show"), 250); });
+    demo.querySelectorAll(".tile").forEach(tl => tl.addEventListener("click", () => {
+      const s = tl.querySelector("svg"); s.animate([{transform:"none"},{transform:"translateY(-14px)"},{transform:"none"},{transform:"translateY(-7px)"},{transform:"none"}], {duration: 800});
+      tl.classList.add("run");
+    }));
+  }
+
+  // ------------------------------------------------------------ Einstieg: Insel klappt auf
+
+  // ------------------------------------------------------------ Insel-Demo
+  const pages = [...document.querySelectorAll(".isl-page")];
+  const dots = document.getElementById("dots");
+  dots.innerHTML = [0,1,2].map(i => `<button aria-label="Page ${i+1}" data-page="${i}"></button>`).join("");
+  function showPage(p) {
+    pages.forEach((el, i) => el.hidden = i !== p);
+    document.querySelectorAll(".isl-tab").forEach(b => b.setAttribute("aria-selected", String(+b.dataset.page === p)));
+    dots.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-current", String(i === p)));
+  }
+  document.querySelectorAll("#isl [data-page]").forEach(b => b.addEventListener("click", () => showPage(+b.dataset.page)));
+  showPage(0);
+
+  const music = document.getElementById("music"), pp = document.getElementById("pp"), fill = document.getElementById("fill"), tNow = document.getElementById("tNow");
+  const PLAY = '<svg width="13" height="14" viewBox="0 0 13 14" fill="currentColor"><path d="M1 0v14l12-7z"/></svg>';
+  const PAUSE = '<svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor"><rect width="3.5" height="14" rx="1"/><rect x="8.5" width="3.5" height="14" rx="1"/></svg>';
+  let pos = 131, playing = false, iv;
+  const total = 218;
+  function drawPos() { fill.style.width = (pos / total * 100) + "%"; tNow.textContent = Math.floor(pos / 60) + ":" + String(pos % 60).padStart(2, "0"); }
+  function setPlay(on) {
+    playing = on; music.classList.toggle("playing", on); pp.innerHTML = on ? PAUSE : PLAY; pp.setAttribute("aria-label", on ? "Pause" : "Play");
+    clearInterval(iv); if (on) iv = setInterval(() => { pos = (pos + 1) % total; drawPos(); }, 1000);
+  }
+  pp.onclick = () => setPlay(!playing);
+  document.getElementById("next").onclick = () => { pos = 0; drawPos(); };
+  document.getElementById("prev").onclick = () => { pos = 0; drawPos(); };
+  document.querySelector(".prog .track").addEventListener("click", e => { const r = e.currentTarget.getBoundingClientRect(); pos = Math.round((e.clientX - r.left) / r.width * total); drawPos(); });
+  drawPos(); setPlay(false);
+  const moon = document.getElementById("moon");
+  moon.onclick = () => moon.setAttribute("aria-pressed", String(moon.getAttribute("aria-pressed") !== "true"));
+  document.getElementById("islX").onclick = () => { const i = document.getElementById("isl"); i.animate([{transform:"scale(1)"},{transform:"scale(.96)"},{transform:"scale(1)"}], {duration: 260}); showPage(0); };
+
+  let devSel = 0;
+  function buildDevices() {
+    const names = t("devs") || EN.devs;
+    document.getElementById("devs").innerHTML = names.map((n, i) =>
+      `<button class="dev" role="radio" aria-checked="${i === devSel}" data-i="${i}"><svg width="10" height="12" viewBox="0 0 7 14" fill="currentColor"><path d="M0 4h3l4-4v14L3 10H0z"/></svg>${n}<span class="ck">✓</span></button>`).join("");
+    document.querySelectorAll(".dev").forEach(b => b.onclick = () => { devSel = +b.dataset.i; buildDevices(); });
+  }
+  const vol = document.getElementById("vol"), volT = document.getElementById("volT");
+  vol.oninput = () => volT.textContent = vol.value + " %";
+  document.getElementById("isl").addEventListener("wheel", e => {
+    if (pages[1].hidden) return; e.preventDefault(); vol.value = Math.max(0, Math.min(100, +vol.value + (e.deltaY < 0 ? 2 : -2))); vol.oninput();
+  }, { passive: false });
+
+  let rems = null;
+  function buildReminders() {
+    if (rems === null) rems = [{ text: t("rem1") || EN.rem1, time: "18:30" }, { text: t("rem2") || EN.rem2, time: "" }];
+    document.getElementById("rems").innerHTML = rems.map((r, i) =>
+      `<div class="rem"><button aria-label="Done" data-i="${i}"></button><span>${r.text.replace(/</g, "&lt;")}</span><span class="when">${r.time}</span></div>`).join("");
+    document.querySelectorAll(".rem button").forEach(b => b.onclick = () => { rems.splice(+b.dataset.i, 1); buildReminders(); });
+  }
+  document.getElementById("remIn").addEventListener("keydown", e => {
+    if (e.key !== "Enter" || !e.target.value.trim()) return;
+    const raw = e.target.value.trim(); const m = raw.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
+    rems.push({ text: (m ? raw.replace(m[0], "") : raw).trim() || "…", time: m ? m[1].padStart(2, "0") + ":" + m[2] : "" });
+    e.target.value = ""; buildReminders();
+  });
+
+  // ------------------------------------------------------------ Top-Bar-Demo
+  const WALLS = {
+    dusk: ["linear-gradient(90deg,#1D2048,#3B2D63 55%,#6C4A8C)", false, false],
+    dune: ["linear-gradient(90deg,#F3EEE6,#E9E2F0 55%,#E4ECF5)", true, true],
+    split: ["linear-gradient(90deg,#F3E7D6 0 48%,#B9A9C9 52%,#232044 60%)", true, false],
+  };
+  const tbS = document.getElementById("tbScreen"), tbL = document.getElementById("tbL"), tbR = document.getElementById("tbR");
+  function wall(name) {
+    const [bg, leftLight, rightLight] = WALLS[name];
+    tbS.style.background = bg;
+    tbL.className = "tbd-side " + (leftLight ? "on-light" : "on-dark");
+    tbR.className = "tbd-side right " + (rightLight ? "on-light" : "on-dark");
+    document.querySelectorAll(".swatch").forEach(s => s.setAttribute("aria-pressed", String(s.dataset.wall === name)));
+  }
+  document.querySelectorAll(".swatch").forEach(s => s.onclick = () => wall(s.dataset.wall));
+  wall("dusk");
+
+  // ------------------------------------------------------------ Startmenü-Demo
+  const APPICONS = ["globe","music","mail","photo","term","gear","note","cal","folder","game","chat","code"];
+  const smIn = document.getElementById("smIn"), smGrid = document.getElementById("smGrid"), smLabel = document.getElementById("smLabel");
+  let shown = [];
+  function filterApps() {
+    const names = t("apps") || EN.apps; const q = smIn.value.trim().toLowerCase();
+    shown = names.map((n, i) => ({ n, i })).filter(a => !q || a.n.toLowerCase().includes(q))
+      .sort((a, b) => (b.n.toLowerCase().startsWith(q)) - (a.n.toLowerCase().startsWith(q)));
+    smLabel.textContent = q ? (t("start.res") || EN["start.res"]) : (lang === "de" ? DE["start.all"] : originals["start.all"]);
+    smGrid.innerHTML = shown.length ? shown.map((a, k) => `<button class="sm-app${q && k === 0 ? " sel" : ""}" data-k="${k}">${iconSvg(APPICONS[a.i])}<span>${a.n}</span></button>`).join("")
+      : `<div class="sm-empty">${t("start.none") || EN["start.none"]}</div>`;
+    smGrid.querySelectorAll(".sm-app").forEach(b => b.onclick = () => launch(b));
+  }
+  function launch(b) { b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); }
+  smIn.addEventListener("input", filterApps);
+  smIn.addEventListener("keydown", e => { if (e.key === "Enter") { const b = smGrid.querySelector(".sm-app"); if (b) launch(b); } if (e.key === "Escape") { smIn.value = ""; filterApps(); } });
+
+  // Fenster schmaler/breiter → Docks neu (Handy-Größe)
+  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(buildDocks, 200); });
+
+  applyLang();
+})();
+</script>
+</body>
+</html>

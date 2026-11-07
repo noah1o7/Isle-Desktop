@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/noah1o7/Isle-Desktop/releases/latest"><b>⬇&nbsp;&nbsp;Für Windows herunterladen</b></a>
+  <a href="https://github.com/noah1o7/Isle-Desktop/releases/latest"><b>⬇&nbsp;&nbsp;Für Windows herunterladen</b></a> &nbsp;&nbsp;|&nbsp;&nbsp; <a href="https://noah1o7.github.io/Isle-Desktop/?lang=de"><b>Webseite</b></a>
 </p>
 
 ---
