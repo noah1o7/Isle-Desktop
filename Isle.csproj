@@ -13,7 +13,7 @@
     <RootNamespace>Isle</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <!-- Schnellerer Start: Code wird schon beim Bauen vorübersetzt -->
     <PublishReadyToRun>true</PublishReadyToRun>

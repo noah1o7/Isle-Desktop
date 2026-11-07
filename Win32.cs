@@ -26,6 +26,14 @@ namespace Isle
         [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool attach);
         [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+        [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
+        [DllImport("user32.dll")] public static extern int GetMessage(out MSG msg, IntPtr hWnd, uint min, uint max);
+        [DllImport("user32.dll")] public static extern bool TranslateMessage(ref MSG msg);
+        [DllImport("user32.dll")] public static extern IntPtr DispatchMessage(ref MSG msg);
+        [DllImport("user32.dll")] public static extern bool PostThreadMessage(uint threadId, uint msg, IntPtr w, IntPtr l);
+        public const uint WM_QUIT = 0x0012;
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam, lParam; public uint time; public POINT pt; }
         [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr w, IntPtr l);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string? title);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string cls, string? title);

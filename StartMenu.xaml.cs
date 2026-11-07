@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -11,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace Isle
 {
@@ -23,7 +23,7 @@ namespace Isle
 
         public DateTime LastHidden { get; private set; } = DateTime.MinValue;
         private DateTime _shownAt = DateTime.MinValue;
-        private int _subMenus; // offene Rechtsklick-/Ein-Aus-Menüs: Klicks darin sind keine Klicks „daneben“
+        private ContextMenu? _openSub; // gerade offenes Rechtsklick-/Ein-Aus-Menü
 
         /// <summary>Menü ist (nach der Ausblend-Animation) komplett weg.</summary>
         public event Action? Hidden;
@@ -36,7 +36,6 @@ namespace Isle
 
             AppCatalog.Loaded += BuildAppTiles;
             Deactivated += (_, _) => HideMenu();
-            _mouseProc = MouseHook;
         }
 
         // ---------------------------------------------------------------- Ein-/Ausblenden
@@ -56,7 +55,7 @@ namespace Isle
             Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
 
             _closing = false; // falls eine Ausblend-Animation unterbrochen wurde – sonst ginge das Menü nie mehr zu
-            _subMenus = 0;
+            _openSub = null;
             _shownAt = DateTime.Now;
             SearchBox.Text = "";
             BuildRecent();
@@ -70,7 +69,7 @@ namespace Isle
             Activate();
             SearchBox.Focus();
             Keyboard.Focus(SearchBox);
-            HookMouse(); // Klick daneben schließt – auch wenn Windows uns den Fokus nicht gegeben hat
+            StartWatch(); // Klick daneben / andere App vorne → schließen, auch ohne Fokus
 
             var dur = TimeSpan.FromMilliseconds(160);
             var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
@@ -84,7 +83,7 @@ namespace Isle
             if (!IsVisible || _closing) return;
             _closing = true;
             LastHidden = DateTime.Now;
-            UnhookMouse();
+            StopWatch();
             var a = new DoubleAnimation(0, TimeSpan.FromMilliseconds(100));
             a.Completed += (_, _) =>
             {
@@ -96,71 +95,70 @@ namespace Isle
             BeginAnimation(OpacityProperty, a);
         }
 
-        /// <summary>
-        /// Eine andere App ist nach vorne gekommen (Windows meldet das). Dann gehört das Menü weg –
-        /// unabhängig davon, ob WPF ein „Deactivated“ geschickt hat (das bleibt manchmal aus,
-        /// wenn Windows dem Menü den Fokus gar nicht erst gegeben hat).
-        /// </summary>
-        public void OnForegroundChanged()
+        // ---------------------------------------------------------------- Schließen, wenn man woanders hinklickt
+        //
+        // Bewusst ohne Maus-Hook und ohne sich auf WPFs „Deactivated“ zu verlassen: Beides fällt aus, wenn Windows
+        // dem Menü den Fokus nicht gibt oder Isle kurz beschäftigt ist. Stattdessen schaut ein Timer alle 40 ms nach:
+        //  • Maustaste neu gedrückt und Zeiger außerhalb des Menüs → zu
+        //  • eine andere App ist nach vorne gekommen → zu
+
+        private DispatcherTimer? _watch;
+        private bool _btnWasDown;
+        private bool _hadFocus;
+        private IntPtr _fgAtShow;
+
+        private void StartWatch()
         {
-            if (!IsVisible || _closing || _subMenus > 0) return;
-            if ((DateTime.Now - _shownAt).TotalMilliseconds < 250) return; // Fokuswechsel beim Öffnen selbst
-            IntPtr fg = Win32.GetForegroundWindow();
-            if (fg == new WindowInteropHelper(this).Handle) return;
-            Win32.GetWindowThreadProcessId(fg, out uint pid);
-            if (pid == (uint)Environment.ProcessId) return; // eigene Fenster (z. B. Dialoge) zählen nicht
-            HideMenu();
+            _btnWasDown = MouseButtonDown();
+            _hadFocus = false;
+            _fgAtShow = Win32.GetForegroundWindow();
+            _watch ??= new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(40) };
+            _watch.Tick -= Watch_Tick;
+            _watch.Tick += Watch_Tick;
+            _watch.Start();
         }
 
-        // ---------------------------------------------------------------- Klick daneben
+        private void StopWatch() => _watch?.Stop();
 
-        private const int WH_MOUSE_LL = 14;
-        private const int WM_LBUTTONDOWN = 0x201, WM_RBUTTONDOWN = 0x204, WM_MBUTTONDOWN = 0x207;
+        private static bool MouseButtonDown() =>
+            Win32.GetAsyncKeyState(0x01) < 0 || Win32.GetAsyncKeyState(0x02) < 0 || Win32.GetAsyncKeyState(0x04) < 0; // oberstes Bit = gedrückt
 
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MSLLHOOKSTRUCT { public Win32.POINT pt; public uint mouseData, flags, time; public IntPtr extra; }
-
-        private readonly Win32.LowLevelKeyboardProc _mouseProc; // gleiche Signatur; Referenz halten wegen GC
-        private IntPtr _mouseHook;
-
-        private void HookMouse()
+        private void Watch_Tick(object? sender, EventArgs e)
         {
-            if (_mouseHook != IntPtr.Zero) return;
-            _mouseHook = Win32.SetWindowsHookEx(WH_MOUSE_LL, _mouseProc, Win32.GetModuleHandle(null), 0);
-        }
+            if (!IsVisible || _closing) { StopWatch(); return; }
+            IntPtr me = new WindowInteropHelper(this).Handle;
+            bool subOpen = _openSub?.IsOpen == true; // Rechtsklick- oder Ein/Aus-Menü offen: das regelt sich selbst
+            double age = (DateTime.Now - _shownAt).TotalMilliseconds;
 
-        private void UnhookMouse()
-        {
-            if (_mouseHook == IntPtr.Zero) return;
-            Win32.UnhookWindowsHookEx(_mouseHook);
-            _mouseHook = IntPtr.Zero;
-        }
-
-        private IntPtr MouseHook(int nCode, IntPtr wParam, IntPtr lParam)
-        {
-            if (nCode >= 0 && wParam.ToInt32() is WM_LBUTTONDOWN or WM_RBUTTONDOWN or WM_MBUTTONDOWN)
+            // 1) Klick außerhalb
+            bool btn = MouseButtonDown();
+            if (btn && !_btnWasDown && !subOpen && Win32.GetCursorPos(out var p) && Win32.GetWindowRect(me, out var r))
             {
-                var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-                IntPtr me = new WindowInteropHelper(this).Handle;
-                bool inside = Win32.GetWindowRect(me, out var r)
-                              && info.pt.X >= r.Left && info.pt.X < r.Right && info.pt.Y >= r.Top && info.pt.Y < r.Bottom;
-                if (!inside && _subMenus == 0)
-                    Dispatcher.BeginInvoke(new Action(HideMenu));
+                bool inside = p.X >= r.Left && p.X < r.Right && p.Y >= r.Top && p.Y < r.Bottom;
+                if (!inside) { _btnWasDown = btn; HideMenu(); return; }
             }
-            return Win32.CallNextHookEx(_mouseHook, nCode, wParam, lParam);
-        }
+            _btnWasDown = btn;
 
-        protected override void OnClosed(EventArgs e)
-        {
-            UnhookMouse();
-            base.OnClosed(e);
+            // 2) Fokus: hat Windows uns (noch) nicht nach vorne gelassen → kurz nach dem Öffnen nochmal versuchen
+            IntPtr fg = Win32.GetForegroundWindow();
+            Win32.GetWindowThreadProcessId(fg, out uint pid);
+            bool ours = fg == me || pid == (uint)Environment.ProcessId;
+            if (ours) { _hadFocus = true; return; }
+            if (!_hadFocus && age < 600)
+            {
+                Win32.ForceForeground(me);
+                return;
+            }
+
+            // 3) Eine andere App ist nach vorne gekommen (Alt+Tab, Klick in die Taskleiste, App gestartet …)
+            if (subOpen) return;
+            if (_hadFocus || fg != _fgAtShow) HideMenu();
         }
 
         /// <summary>Kleine Menüs im Startmenü öffnen und mitzählen, solange sie offen sind.</summary>
         private void OpenSubMenu(ContextMenu m)
         {
-            _subMenus++;
-            m.Closed += (_, _) => _subMenus = Math.Max(0, _subMenus - 1);
+            _openSub = m;
             m.IsOpen = true;
         }
 

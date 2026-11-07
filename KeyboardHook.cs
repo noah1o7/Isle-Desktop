@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 
 namespace Isle
@@ -14,18 +15,41 @@ namespace Isle
 
         private readonly Win32.LowLevelKeyboardProc _proc; // Referenz halten, sonst räumt der GC sie weg
         private IntPtr _hook;
+        private readonly Thread _thread;
+        private uint _threadId;
+        private volatile bool _enabled = true;
         private bool _winDown;
         private bool _comboUsed;
         // Tasten, die gerade gedrückt gehalten werden (z. B. W/A/S/D beim Laufen im Spiel)
         private readonly bool[] _held = new bool[256];
 
         public event Action? WinKeyAlone;
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get => _enabled; set => _enabled = value; }
 
+        /// <summary>
+        /// Der Hook läuft in einem eigenen, sonst leeren Thread. Lief er im Oberflächen-Thread und der war kurz
+        /// beschäftigt (z. B. Startmenü lädt Icons), hat Windows den Hook stillschweigend entfernt –
+        /// danach kam die Windows-Taste nie mehr bei Isle an.
+        /// </summary>
         public KeyboardHook()
         {
             _proc = Callback;
-            _hook = Win32.SetWindowsHookEx(Win32.WH_KEYBOARD_LL, _proc, Win32.GetModuleHandle(null), 0);
+            var ready = new ManualResetEventSlim(); // nicht disposen: der Thread setzt es evtl. erst nach dem Timeout
+            _thread = new Thread(() =>
+            {
+                _threadId = Win32.GetCurrentThreadId();
+                _hook = Win32.SetWindowsHookEx(Win32.WH_KEYBOARD_LL, _proc, Win32.GetModuleHandle(null), 0);
+                ready.Set();
+                while (Win32.GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
+                {
+                    Win32.TranslateMessage(ref msg);
+                    Win32.DispatchMessage(ref msg);
+                }
+                if (_hook != IntPtr.Zero) { Win32.UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
+            })
+            { IsBackground = true, Name = "Isle Tastatur" };
+            _thread.Start();
+            ready.Wait(3000);
         }
 
         private IntPtr Callback(int nCode, IntPtr wParam, IntPtr lParam)
@@ -85,11 +109,8 @@ namespace Isle
 
         public void Dispose()
         {
-            if (_hook != IntPtr.Zero)
-            {
-                Win32.UnhookWindowsHookEx(_hook);
-                _hook = IntPtr.Zero;
-            }
+            if (_threadId != 0) Win32.PostThreadMessage(_threadId, Win32.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+            _thread.Join(1000);
         }
     }
 }

@@ -101,7 +101,6 @@ namespace Isle
                 t.Tick += (_, _) => { t.Stop(); Dock?.EndReveal(); _topBar?.EndReveal(); };
                 t.Start();
             };
-            _events.ForegroundChanged += _startMenu.OnForegroundChanged; // andere App vorne → Startmenü zu
 
             _keyboard = new KeyboardHook { Enabled = s.WinKeyOpensStart };
             _keyboard.WinKeyAlone += ToggleStartMenu;
